@@ -3,3 +3,4 @@ elasticsearch
 tensorflow_hub
 tensorflow
 numpy
+pyarrow
