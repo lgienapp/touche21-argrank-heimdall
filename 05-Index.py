@@ -1,6 +1,12 @@
 import pandas as pd
+import argparse
 
-df = pd.read_parquet("data/index.parquet")
+parser = argparse.ArgumentParser()
+parser.add_argument('--data', type=str, required=True)
+args = parser.parse_args()
+
+
+df = pd.read_parquet(args.data)
 
 index = {
     "settings": {

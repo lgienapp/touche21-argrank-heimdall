@@ -1,0 +1,5 @@
+pandas
+elasticsearch
+tensorflow_hub
+tensorflow
+numpy

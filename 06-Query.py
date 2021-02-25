@@ -6,6 +6,15 @@ import pandas as pd
 import numpy as np
 from elasticsearch import Elasticsearch
 import json
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--topic_path', type=str, required=True)
+parser.add_argument('--output_path', type=str, required=True)
+args = parser.parse_args()
+
+
+
 
 def perform_query(query_text, w_r=1, w_c=1, w_q=1, k=1000, index="argrank"):
     query_vector = embed([query_text]).numpy()[0].tolist()
@@ -36,20 +45,17 @@ def perform_query(query_text, w_r=1, w_c=1, w_q=1, k=1000, index="argrank"):
             "query": script_query,
              "_source": {"includes": ["id"]}
         },
-        explain=True
     )
     return res["hits"]["hits"]
 
 def parse_query(res):
     return {"id": res["_source"]["id"], "score": res["_score"]}
-    
 
-from elasticsearch import Elasticsearch
 
 CLIENT = Elasticsearch()
 
 
-tree = ET.parse('data/topics.xml')
+tree = ET.parse(args.topic_path)
 root = tree.getroot()
 topics = []
 for child in root:
@@ -57,30 +63,27 @@ for child in root:
     topics.append(d)
 topics = pd.DataFrame(topics)
 
-import itertools
-for w_c, w_q in itertools.product(range(0,11,2), repeat=2):
-    w_c = w_c/10
-    w_q = w_q/10
-    print("Retrieving for weights:", w_c, w_q)
-    #ITERATE THROUGH TOPICS AND EXECUTE SEARCH
-    for _, row in topics.iterrows():
-        number = row['topic_number']
-        query = row['topic_query']
 
-        print(f'Now working on query {number}: {query}')
-        #QUERY ELASTICSEARCH FOR TOPIC
-        
-        res = list(map(parse_query, perform_query(query, w_c=w_c, w_q=w_q)))
+w_c = 1
+w_q = 1
+print("Retrieving for weights:", w_c, w_q)
 
-        #CONVERT DICTIONARY TO TREC-STYLE DATAFRAME
-        final_ranks = pd.DataFrame(res)
-        final_ranks = final_ranks.sort_values(by='score', ascending=False)
-        final_ranks['rank'] = np.arange(len(final_ranks)) + 1
-        final_ranks['method'] = 'argrank_'+str(w_c)+'-'+str(w_q)
-        final_ranks['Q0'] = "Q0"
-        final_ranks['topic_number'] = number
+for _, row in topics.iterrows():
+    number = row['topic_number']
+    query = row['topic_query']
 
-        #APPEND CURRENT DATAFRAME TO OUTPUT FILE
-        with open('run_'+str(int(w_c*10))+'-'+str(int(w_q*10))+'_.txt', 'a+') as f:
-            final_ranks[['topic_number', 'Q0', 'id', 'rank', 'score', 'method']].to_csv(f, sep=' ', header=False, index=False)
-    
+    print(f'Now working on query {number}: {query}')
+    res = list(map(parse_query, perform_query(query, w_c=w_c, w_q=w_q)))
+
+
+    final_ranks = pd.DataFrame(res)
+    final_ranks = final_ranks.sort_values(by='score', ascending=False)
+    final_ranks['rank'] = np.arange(len(final_ranks)) + 1
+    final_ranks['method'] = 'argrank_'+str(w_c)+'-'+str(w_q)
+    final_ranks['Q0'] = "Q0"
+    final_ranks['topic_number'] = number
+
+
+    with open(args.output_path, 'a+') as f:
+        final_ranks[['topic_number', 'Q0', 'id', 'rank', 'score', 'method']].to_csv(f, sep=' ', header=False, index=False)
+
