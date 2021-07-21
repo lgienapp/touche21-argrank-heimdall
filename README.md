@@ -1,4 +1,6 @@
-# TOUCHE-21 Argrank
+# TOUCHE-21:  Argument Retrieval for Controversial Questions
+**Submission of Team Heimdall**
+
 
 Submission to the Touche-21 Shared Task on argument retrieval for controversial questions. For detailed information, refer to the associated paper published at CLEF 2021.
 
